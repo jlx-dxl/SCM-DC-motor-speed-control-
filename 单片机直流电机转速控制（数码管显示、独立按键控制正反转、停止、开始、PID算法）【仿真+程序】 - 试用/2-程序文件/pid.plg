@@ -1,0 +1,15 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Project:</h2>
+Y:\百度网盘\yh1033138658\学文电子设计\【51单片机系列】仿真设计\zldj-直流电机设计\单片机直流电机转速控制（数码管显示、独立按键控制正反转、停止、开始、PID算法）【仿真+程序】\2-程序文件\pid.uvproj
+Project File Date:  05/11/2015
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling PID.C...
+linking...
+Program Size: data=63.0 xdata=0 code=2099
+creating hex file from "pid"...
+"pid" - 0 Error(s), 0 Warning(s).

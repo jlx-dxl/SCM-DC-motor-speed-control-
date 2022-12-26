@@ -1,0 +1,243 @@
+C51 COMPILER V7.06   PID1                                                                  10/21/2020 23:59:21 PAGE 1   
+
+
+C51 COMPILER V7.06, COMPILATION OF MODULE PID1
+OBJECT MODULE PLACED IN PID1.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE PID1.c BROWSE DEBUG OBJECTEXTEND
+
+stmt level    source
+
+   1          #include<reg52.h>
+   2          #include<stdio.h>
+   3          #define uchar unsigned char 
+   4          #define uint unsigned int
+   5          #define THC0 0xf9
+   6          #define TLC0 0x0f   //2ms
+   7          unsigned char  code Duan[]={0x3F, 0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F};//共阴极数码管，0-9段码表
+   8          unsigned char  Data_Buffer[8]={0,0,0,0,0,0,0,0};                         //     显示缓冲
+   9           
+  10          uchar i=0;
+  11          sbit AddSpeed=P1^1;
+  12          sbit SubSpeed=P1^2;
+  13          sbit TurnForward=P1^3;
+  14          sbit TurnBackward=P1^4;
+  15          sbit Stop=P1^5;
+  16          
+  17          sbit IN1=P3^0;
+  18          sbit IN2=P3^1;
+  19          sbit PWM_FC=P1^0;
+  20          int e ,e1 ,e2 ;
+  21          float uk ,uk1 ,duk ;//pid输出值
+  22          float Kp=15,Ki=12,Kd=1.6;
+  23          int out=0;
+  24          uint SpeedSet=0;
+  25          uint cnt=0;
+  26          uint Inpluse=0,num=0;//脉冲计数
+  27          uint PWMTime=10;//脉冲宽度
+  28          unsigned char  arry[];
+  29          void SendString(uint ch);
+  30          void PIDControl();
+  31          void SystemInit();
+  32          void delay(uchar x);
+  33          void PWMOUT();
+  34          void SetSpeed();
+  35          void SegRefre();
+  36          /**************主函数************/
+  37          void main()
+  38          {
+  39   1              SystemInit();
+  40   1              while(1)
+  41   1              {
+  42   2                      SetSpeed();             //按键设定速度
+  43   2                      SegRefre();             //数码管显示刷新
+  44   2                      PWMOUT();               //输出PWM
+  45   2       
+  46   2              }
+  47   1      }
+  48          
+  49          void PIDControl()        //pid偏差计算
+  50          {
+  51   1              e=SpeedSet-num;          
+  52   1              duk=(Kp*(e-e1)+Ki*e+Kd*(e-2*e1+e2))/50;       
+  53   1              uk=uk1+duk;         
+  54   1              out=(int)uk;   //输出为占空比
+  55   1              if(out>1000)
+C51 COMPILER V7.06   PID1                                                                  10/21/2020 23:59:21 PAGE 2   
+
+  56   1              {
+  57   2                      out=1000;
+  58   2              }
+  59   1              else if(out<0)
+  60   1              {
+  61   2                      out=0;
+  62   2              }
+  63   1              uk1=uk;                           //变量值移位
+  64   1              e2=e1;
+  65   1              e1=e;                             
+  66   1              PWMTime=out;
+  67   1      }
+  68          
+  69          void delay(uchar x)
+  70          {
+  71   1              uint i,j;
+  72   1              for(i=x;i>0;i--)
+  73   1                      for(j=50;j>0;j--);
+  74   1      }
+  75          
+  76          void PWMOUT()             
+  77          {
+  78   1              if(cnt<PWMTime)        
+  79   1              {
+  80   2                      PWM_FC=1;
+  81   2              }
+  82   1              else
+  83   1              {
+  84   2                      PWM_FC=0;
+  85   2              }
+  86   1              if(cnt>1000) cnt=0;      
+  87   1      }
+  88          void SystemInit()
+  89          {
+  90   1              TMOD=0X21;     
+  91   1              TH0=THC0;
+  92   1              TL0=TLC0;
+  93   1              TH1=0xC0;
+  94   1              TL1=0XC0;
+  95   1              ET1=1;
+  96   1              ET0=1;
+  97   1              TR0=1;
+  98   1              TR1=1;
+  99   1              EX0=1;     
+ 100   1              IT0=1;
+ 101   1              EA=1;
+ 102   1              e =0;           
+ 103   1              e1=0;
+ 104   1              e2=0;
+ 105   1              IN1 = 1;
+ 106   1              IN2 = 0;
+ 107   1      }
+ 108          void SetSpeed()
+ 109          {
+ 110   1              if(AddSpeed==0)
+ 111   1              {
+ 112   2                      delay(200);                       //消抖处理
+ 113   2                      if(AddSpeed==0)
+ 114   2                      {
+ 115   3                              SpeedSet+=10;
+ 116   3                              if(SpeedSet>1500)
+ 117   3                              {
+C51 COMPILER V7.06   PID1                                                                  10/21/2020 23:59:21 PAGE 3   
+
+ 118   4                                      SpeedSet=1500;
+ 119   4                              }
+ 120   3                      }
+ 121   2                   }
+ 122   1              if(SubSpeed==0)
+ 123   1              {
+ 124   2                      delay(200);
+ 125   2                      if(SubSpeed==0)
+ 126   2                      {
+ 127   3                              SpeedSet-=10;
+ 128   3                              if(SpeedSet<0) SpeedSet=0;
+ 129   3                      }
+ 130   2              }
+ 131   1              if(TurnForward==0)
+ 132   1              {
+ 133   2                      delay(200);
+ 134   2                      if(TurnForward==0)
+ 135   2                      {
+ 136   3                         IN1 = 1;
+ 137   3                         IN2 = 0;
+ 138   3                         while(TurnForward==0);
+ 139   3                      }
+ 140   2              }
+ 141   1              if(TurnBackward==0)
+ 142   1              {
+ 143   2                      delay(200);
+ 144   2                      if(TurnBackward==0)
+ 145   2                      {
+ 146   3                         IN1 = 0;
+ 147   3                         IN2 = 1;
+ 148   3                         while(TurnBackward==0);
+ 149   3                      }
+ 150   2              }
+ 151   1              if(Stop==0)
+ 152   1              {
+ 153   2                      delay(200);
+ 154   2                      if(Stop==0)
+ 155   2                      {
+ 156   3                         IN1 = 1;
+ 157   3                         IN2 = 1;
+ 158   3                         while(Stop==0);
+ 159   3                      }
+ 160   2              }
+ 161   1      
+ 162   1      }
+ 163          void SegRefre()           //显示刷新
+ 164          {
+ 165   1               Data_Buffer[0]=SpeedSet/1000;            //分离设定值各位
+ 166   1               Data_Buffer[1]=SpeedSet%1000/100;
+ 167   1               Data_Buffer[2]=SpeedSet%100/10;
+ 168   1               Data_Buffer[3]=SpeedSet%10;
+ 169   1               Data_Buffer[4]=num/1000;                        
+ 170   1               Data_Buffer[5]=num%1000/100;
+ 171   1               Data_Buffer[6]=num%100/10;
+ 172   1               Data_Buffer[7]=num%10;
+ 173   1      }
+ 174          
+ 175          void int0() interrupt 0
+ 176          {
+ 177   1              Inpluse++;                  //采集外部脉冲
+ 178   1      }
+ 179          void t0() interrupt 1
+C51 COMPILER V7.06   PID1                                                                  10/21/2020 23:59:21 PAGE 4   
+
+ 180          {
+ 181   1              static unsigned char Bit=0;
+ 182   1              static unsigned int time=0;
+ 183   1              TH0=THC0;
+ 184   1              TL0=TLC0;
+ 185   1      
+ 186   1       
+ 187   1              Bit++;
+ 188   1              time++;  //转速测量周期
+ 189   1              if(Bit>8) Bit=0;                  
+ 190   1              P0=0xff;
+ 191   1              P2=Duan[Data_Buffer[Bit]];      //显示段码
+ 192   1              switch(Bit)                                     //数码管位选
+ 193   1              {
+ 194   2                      case 0:P0=0X7F;break;
+ 195   2                      case 1:P0=0XBF;break;
+ 196   2                      case 2:P0=0XDF;break;
+ 197   2                      case 3:P0=0XEF;break;
+ 198   2                      case 4:P0=0XF7;break;
+ 199   2                      case 5:P0=0XFB;break;
+ 200   2                      case 6:P0=0XFD;break;
+ 201   2                      case 7:P0=0XFE;break;
+ 202   2              }
+ 203   1              if(time>100)
+ 204   1              {
+ 205   2                      time=0;
+ 206   2                      num=Inpluse*5;             
+ 207   2                      Inpluse=0;                         
+ 208   2                      PIDControl();              
+ 209   2              }
+ 210   1      }
+ 211          void timer_1()  interrupt 3
+ 212          {
+ 213   1              cnt++;  //cnt越大占空比越高2.5Khz
+ 214   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    895    ----
+   CONSTANT SIZE    =     10    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     54    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
